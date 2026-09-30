@@ -64,6 +64,12 @@ export default function App() {
   const fs = (n: number) => Math.round(n * scale);
   const pad = isLarge ? 32 : 20;
 
+  // Ukuran gambar dihitung eksplisit agar selalu pas di layar (tidak terpotong)
+  const lebarKonten = Math.min(width, 900);
+  const kolom = lebarKonten - pad * 2;
+  const heroW = isWide ? Math.floor((kolom - 20) / 2) : kolom;
+  const heroH = Math.round((heroW * 560) / 1000);
+
   const [selesai, setSelesai] = useState<string[]>([]);
   const [tab, setTab] = useState('Beranda');
 
@@ -93,12 +99,12 @@ export default function App() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={[styles.content, { paddingHorizontal: pad }]}>
+        <View style={[styles.content, { width: lebarKonten, paddingHorizontal: pad }]}>
           {/* HERO */}
           <View style={[styles.atas, isWide && styles.atasWide]}>
             <Image
               source={require('./assets/hero.png')}
-              style={[styles.hero, isWide && styles.heroWide]}
+              style={[styles.hero, { width: heroW, height: heroH }]}
               resizeMode="cover"
               accessible
               accessibilityRole="image"
@@ -268,12 +274,11 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontWeight: '800', color: '#92400e' },
 
-  content: { width: '100%', maxWidth: 900, alignSelf: 'center', paddingBottom: 24 },
+  content: { alignSelf: 'center', paddingBottom: 24 },
 
   atas: { flexDirection: 'column' },
   atasWide: { flexDirection: 'row', alignItems: 'center', gap: 20 },
-  hero: { width: '100%', aspectRatio: 1000 / 560, borderRadius: 24 },
-  heroWide: { flex: 1, width: undefined },
+  hero: { borderRadius: 24 },
   teks: { marginTop: 20 },
   teksWide: { flex: 1, marginTop: 0 },
 
