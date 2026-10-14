@@ -238,6 +238,11 @@ const s = StyleSheet.create({
     marginTop: 12,
   },
   teksBiasa: { color: C.teksLembut, fontSize: 14 },
-  linkWrap: { minHeight: 48, justifyContent: "center" },
+  linkWrap: {
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   link: { color: C.primer, fontWeight: "700", fontSize: 14 },
 });

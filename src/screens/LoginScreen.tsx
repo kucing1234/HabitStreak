@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { User, login } from "../auth";
+import { User, login, validasiEmail } from "../auth";
 import Field from "../components/Field";
 import { C, bayangan } from "../theme";
 
@@ -27,7 +27,7 @@ export default function LoginScreen({ onLogin, onGoRegister }: Props) {
 
   const kirim = async () => {
     // Validasi: input kosong -> pesan validasi
-    const e1 = email.trim() ? "" : "Email wajib diisi.";
+    const e1 = validasiEmail(email);
     const e2 = password ? "" : "Password wajib diisi.";
     setErrEmail(e1);
     setErrPassword(e2);
@@ -198,6 +198,11 @@ const s = StyleSheet.create({
     marginTop: 12,
   },
   teksBiasa: { color: C.teksLembut, fontSize: 14 },
-  linkWrap: { minHeight: 48, justifyContent: "center" },
+  linkWrap: {
+    minHeight: 48,
+    minWidth: 48,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   link: { color: C.primer, fontWeight: "700", fontSize: 14 },
 });

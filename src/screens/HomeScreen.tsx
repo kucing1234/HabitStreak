@@ -66,6 +66,8 @@ const NAV: NavItem[] = [
   { label: "Profil", icon: "person-outline", iconAktif: "person" },
 ];
 
+const MAX_STREAK = Math.max(...HABITS.map((h) => h.streak));
+
 type Props = { user: User; onLogout: () => void };
 
 export default function HomeScreen({ user, onLogout }: Props) {
@@ -168,6 +170,48 @@ export default function HomeScreen({ user, onLogout }: Props) {
               </Text>
             </Pressable>
           </View>
+        ) : tab === "Statistik" ? (
+          <View
+            style={[
+              styles.content,
+              { width: lebarKonten, paddingHorizontal: pad },
+            ]}
+          >
+            <Text
+              accessibilityRole="header"
+              style={[styles.sectionJudul, { fontSize: fs(18), marginTop: 16 }]}
+            >
+              Statistik Streak
+            </Text>
+            {HABITS.map((h) => (
+              <View
+                key={h.id}
+                accessible
+                accessibilityLabel={`${h.nama}, streak ${h.streak} hari`}
+                style={styles.statKartu}
+              >
+                <View style={styles.progresAtas}>
+                  <Text style={[styles.itemNama, { fontSize: fs(16) }]}>
+                    {h.nama}
+                  </Text>
+                  <Text style={[styles.progresAngka, { fontSize: fs(15) }]}>
+                    {h.streak} hari
+                  </Text>
+                </View>
+                <View style={styles.track}>
+                  <View
+                    style={[
+                      styles.fill,
+                      {
+                        width: `${Math.round((h.streak / MAX_STREAK) * 100)}%`,
+                        backgroundColor: h.warna,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+            ))}
+          </View>
         ) : (
           <View
             style={[
@@ -175,7 +219,8 @@ export default function HomeScreen({ user, onLogout }: Props) {
               { width: lebarKonten, paddingHorizontal: pad },
             ]}
           >
-            {/* HERO */}
+            {/* HERO (hanya Beranda) */}
+            {tab === "Beranda" && (
             <View style={[styles.atas, isWide && styles.atasWide]}>
               <Image
                 source={require("../../assets/hero.png")}
@@ -206,12 +251,12 @@ export default function HomeScreen({ user, onLogout }: Props) {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Mulai Sekarang"
-                  accessibilityHint="Membuka halaman untuk menambah kebiasaan pertamamu"
+                  accessibilityHint="Membuka daftar kebiasaan"
                   style={({ pressed }) => [
                     styles.tombol,
                     pressed && styles.tombolDitekan,
                   ]}
-                  onPress={() => console.log("Mulai ditekan")}
+                  onPress={() => setTab("Kebiasaan")}
                 >
                   <Text style={[styles.tombolText, { fontSize: fs(16) }]}>
                     Mulai Sekarang
@@ -224,6 +269,8 @@ export default function HomeScreen({ user, onLogout }: Props) {
                 </Pressable>
               </View>
             </View>
+
+            )}
 
             {/* PROGRES HARI INI */}
             <View
@@ -254,12 +301,13 @@ export default function HomeScreen({ user, onLogout }: Props) {
               >
                 Kebiasaan Hari Ini
               </Text>
+              {tab === "Beranda" && (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Lihat semua kebiasaan"
                 accessibilityHint="Membuka daftar lengkap kebiasaan"
                 style={styles.lihatSemuaWrap}
-                onPress={() => console.log("Lihat semua")}
+                onPress={() => setTab("Kebiasaan")}
               >
                 <Text style={[styles.lihatSemua, { fontSize: fs(14) }]}>
                   Lihat Semua
@@ -270,6 +318,7 @@ export default function HomeScreen({ user, onLogout }: Props) {
                   color={C.primer}
                 />
               </Pressable>
+              )}
             </View>
 
             <View style={styles.daftar}>
@@ -280,7 +329,7 @@ export default function HomeScreen({ user, onLogout }: Props) {
                     key={h.id}
                     accessibilityRole="checkbox"
                     accessibilityLabel={`${h.nama}, streak ${h.streak} hari`}
-                    accessibilityHint="Ketuk dua kali untuk menandai selesai atau belum"
+                    accessibilityHint="Menandai kebiasaan ini selesai atau belum selesai"
                     accessibilityState={{ checked: done }}
                     style={[
                       styles.item,
@@ -308,7 +357,7 @@ export default function HomeScreen({ user, onLogout }: Props) {
                     <Ionicons
                       name={done ? "checkmark-circle" : "ellipse-outline"}
                       size={fs(28)}
-                      color={done ? C.hijau : "#94a3b8"}
+                      color={done ? C.hijau : C.ikonPasif}
                     />
                   </Pressable>
                 );
@@ -467,6 +516,14 @@ const styles = StyleSheet.create({
   itemTeks: { flex: 1 },
   itemNama: { fontWeight: "700", color: C.teks },
   itemInfo: { color: C.teksLembut, marginTop: 2 },
+
+  statKartu: {
+    backgroundColor: C.kartu,
+    borderRadius: 18,
+    padding: 16,
+    marginTop: 12,
+    ...bayangan,
+  },
 
   profilKartu: {
     alignItems: "center",

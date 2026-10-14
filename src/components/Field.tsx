@@ -27,7 +27,7 @@ export default function Field({ label, error, password, ...rest }: Props) {
           {...rest}
           accessibilityLabel={label}
           secureTextEntry={!!password && !tampil}
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor={C.placeholder}
           style={s.input}
         />
         {password && (

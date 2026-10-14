@@ -10,6 +10,8 @@ export const C = {
   hijau: "#15803d",
   hijauMuda: "#dcfce7",
   kuning: "#fbbf24",
+  placeholder: "#64748b", // kontras >= 4.5:1 di atas putih
+  ikonPasif: "#64748b", // kontras >= 3:1 untuk komponen UI
   merah: "#b91c1c",
   merahMuda: "#fee2e2",
 };

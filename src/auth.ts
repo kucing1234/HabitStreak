@@ -8,7 +8,6 @@
 // │ Hash password + salt          │ YA        │ SecureStore (terenkripsi) │
 // │ Nama & email akun             │ YA        │ SecureStore (terenkripsi) │
 // │ Password asli (plaintext)     │ YA        │ TIDAK PERNAH disimpan     │
-// │ Tema / bahasa / UI settings   │ TIDAK     │ AsyncStorage (biasa)      │
 // └───────────────────────────────┴───────────┴───────────────────────────┘
 //
 // Catatan: SecureStore memakai Keychain (iOS) / Keystore (Android), jadi data
