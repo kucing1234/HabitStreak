@@ -2,9 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,47 +15,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { User } from "../auth";
+import { useHabits } from "../hooks/useHabits";
 import { C, MIN_TOUCH, bayangan } from "../theme";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
-type Habit = {
-  id: string;
-  nama: string;
-  icon: IconName;
-  warna: string;
-  latar: string;
-  streak: number;
-};
-
 type NavItem = { label: string; icon: IconName; iconAktif: IconName };
-
-const HABITS: Habit[] = [
-  {
-    id: "1",
-    nama: "Membaca",
-    icon: "book",
-    warna: "#1d4ed8",
-    latar: "#dbeafe",
-    streak: 12,
-  },
-  {
-    id: "2",
-    nama: "Olahraga",
-    icon: "barbell",
-    warna: "#c2410c",
-    latar: "#ffedd5",
-    streak: 7,
-  },
-  {
-    id: "3",
-    nama: "Minum Air",
-    icon: "water",
-    warna: "#0e7490",
-    latar: "#cffafe",
-    streak: 21,
-  },
-];
 
 const NAV: NavItem[] = [
   { label: "Beranda", icon: "home-outline", iconAktif: "home" },
@@ -65,8 +32,6 @@ const NAV: NavItem[] = [
   { label: "Statistik", icon: "stats-chart-outline", iconAktif: "stats-chart" },
   { label: "Profil", icon: "person-outline", iconAktif: "person" },
 ];
-
-const MAX_STREAK = Math.max(...HABITS.map((h) => h.streak));
 
 type Props = { user: User; onLogout: () => void };
 
@@ -89,9 +54,52 @@ export default function HomeScreen({ user, onLogout }: Props) {
   const [selesai, setSelesai] = useState<string[]>([]);
   const [tab, setTab] = useState("Beranda");
 
-  const total = HABITS.length;
-  const jumlah = selesai.length;
-  const persen = Math.round((jumlah / total) * 100);
+  // Data kebiasaan diambil dari REST API (bukan data statis lagi)
+  const { habits, loading, refreshing, error, muatUlang, refresh } =
+    useHabits();
+
+  const total = habits.length;
+  const jumlah = habits.filter((h) => selesai.includes(h.id)).length;
+  const persen = total ? Math.round((jumlah / total) * 100) : 0;
+  const maxStreak = Math.max(1, ...habits.map((h) => h.streak));
+
+  // Tampilan sementara saat data belum siap / gagal diambil
+  const status = loading ? (
+    <View
+      accessible
+      accessibilityLabel="Memuat data kebiasaan"
+      style={styles.statusKotak}
+    >
+      <ActivityIndicator size="large" color={C.primer} />
+      <Text style={[styles.statusTeks, { fontSize: fs(15) }]}>
+        Memuat kebiasaan…
+      </Text>
+    </View>
+  ) : error ? (
+    <View style={styles.statusKotak}>
+      <View
+        accessibilityRole="alert"
+        accessibilityLiveRegion="assertive"
+        style={styles.alert}
+      >
+        <Ionicons name="cloud-offline" size={fs(22)} color={C.merah} />
+        <Text style={[styles.alertTeks, { fontSize: fs(14) }]}>{error}</Text>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Coba lagi"
+        accessibilityHint="Mengambil ulang data kebiasaan dari server"
+        style={({ pressed }) => [
+          styles.tombol,
+          pressed && styles.tombolDitekan,
+        ]}
+        onPress={muatUlang}
+      >
+        <Ionicons name="refresh" size={fs(20)} color="#ffffff" />
+        <Text style={[styles.tombolText, { fontSize: fs(16) }]}>Coba Lagi</Text>
+      </Pressable>
+    </View>
+  ) : null;
 
   const toggleHabit = (id: string) =>
     setSelesai((prev) =>
@@ -131,7 +139,17 @@ export default function HomeScreen({ user, onLogout }: Props) {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={refresh}
+            colors={[C.primer]}
+            tintColor={C.primer}
+          />
+        }
+      >
         {tab === "Profil" ? (
           <View
             style={[
@@ -183,7 +201,7 @@ export default function HomeScreen({ user, onLogout }: Props) {
             >
               Statistik Streak
             </Text>
-            {HABITS.map((h) => (
+            {status ?? habits.map((h) => (
               <View
                 key={h.id}
                 accessible
@@ -203,7 +221,7 @@ export default function HomeScreen({ user, onLogout }: Props) {
                     style={[
                       styles.fill,
                       {
-                        width: `${Math.round((h.streak / MAX_STREAK) * 100)}%`,
+                        width: `${Math.round((h.streak / maxStreak) * 100)}%`,
                         backgroundColor: h.warna,
                       },
                     ]}
@@ -272,7 +290,9 @@ export default function HomeScreen({ user, onLogout }: Props) {
 
             )}
 
-            {/* PROGRES HARI INI */}
+            {/* PROGRES HARI INI + DAFTAR (data dari API) */}
+            {status ?? (
+            <>
             <View
               accessible
               accessibilityRole="progressbar"
@@ -322,7 +342,12 @@ export default function HomeScreen({ user, onLogout }: Props) {
             </View>
 
             <View style={styles.daftar}>
-              {HABITS.map((h) => {
+              {habits.length === 0 && (
+                <Text style={[styles.statusTeks, { fontSize: fs(15) }]}>
+                  Belum ada kebiasaan aktif.
+                </Text>
+              )}
+              {habits.map((h) => {
                 const done = selesai.includes(h.id);
                 return (
                   <Pressable
@@ -348,6 +373,14 @@ export default function HomeScreen({ user, onLogout }: Props) {
                       <Text style={[styles.itemNama, { fontSize: fs(16) }]}>
                         {h.nama}
                       </Text>
+                      {!!h.deskripsi && (
+                        <Text
+                          numberOfLines={2}
+                          style={[styles.itemInfo, { fontSize: fs(13) }]}
+                        >
+                          {h.deskripsi}
+                        </Text>
+                      )}
                       <Text style={[styles.itemInfo, { fontSize: fs(13) }]}>
                         {h.streak} hari streak ·{" "}
                         {done ? "Selesai ✓" : "Belum selesai"}
@@ -363,6 +396,8 @@ export default function HomeScreen({ user, onLogout }: Props) {
                 );
               })}
             </View>
+            </>
+            )}
           </View>
         )}
       </ScrollView>
@@ -516,6 +551,18 @@ const styles = StyleSheet.create({
   itemTeks: { flex: 1 },
   itemNama: { fontWeight: "700", color: C.teks },
   itemInfo: { color: C.teksLembut, marginTop: 2 },
+
+  statusKotak: { paddingVertical: 32, alignItems: "stretch", gap: 12 },
+  statusTeks: { color: C.teksLembut, textAlign: "center", marginTop: 8 },
+  alert: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: C.merahMuda,
+    borderRadius: 12,
+    padding: 12,
+  },
+  alertTeks: { flex: 1, color: C.merah, fontWeight: "600" },
 
   statKartu: {
     backgroundColor: C.kartu,
