@@ -1,7 +1,8 @@
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { setUnauthorizedHandler } from "./src/api/client";
 import { User, getSession, logout } from "./src/auth";
 import HomeScreen from "./src/screens/HomeScreen";
 import LoginScreen from "./src/screens/LoginScreen";
@@ -15,19 +16,26 @@ export default function App() {
   const [siap, setSiap] = useState(false);
   const [layar, setLayar] = useState<Layar>("login");
 
-  // Saat aplikasi dibuka: baca kembali session dari secure storage
+  const keluar = useCallback(async () => {
+    await logout(); // hapus token + session dari secure storage
+    setUser(null); // authentication state: unauthenticated
+    setLayar("login");
+  }, []);
+
+  // Token ditolak server (401: kedaluwarsa / tidak valid) -> session dibersihkan
+  // dan aplikasi kembali ke halaman login.
+  useEffect(() => {
+    setUnauthorizedHandler(keluar);
+    return () => setUnauthorizedHandler(null);
+  }, [keluar]);
+
+  // Saat aplikasi dibuka: baca token dari secure storage, validasi ke server
   useEffect(() => {
     getSession().then((u) => {
       setUser(u);
       setSiap(true);
     });
   }, []);
-
-  const keluar = async () => {
-    await logout(); // hapus session dari secure storage
-    setUser(null);
-    setLayar("login");
-  };
 
   if (!siap) {
     return (

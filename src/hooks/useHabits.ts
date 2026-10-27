@@ -7,6 +7,10 @@ const pesanError = (e: unknown) => {
   const m = e instanceof Error ? e.message : "";
   if (e instanceof Error && e.name === "AbortError")
     return "Koneksi terlalu lama. Periksa internet lalu coba lagi.";
+  if (m === "HTTP_401" || m === "HTTP_403")
+    return "Sesi berakhir. Silakan login kembali.";
+  if (m === "INSECURE")
+    return "Koneksi tidak aman. Aplikasi hanya boleh memakai HTTPS.";
   if (m.startsWith("HTTP_"))
     return `Server bermasalah (kode ${m.slice(5)}). Coba lagi nanti.`;
   if (m === "FORMAT") return "Format data dari server tidak sesuai.";

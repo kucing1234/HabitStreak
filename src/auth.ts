@@ -1,42 +1,30 @@
-// TASK 2 — Secure the Local Data
+// SPRINT 04 — Token-based authentication
 //
-// KLASIFIKASI DATA
-// ┌───────────────────────────────┬───────────┬───────────────────────────┐
-// │ Data                          │ Sensitif? │ Disimpan di               │
-// ├───────────────────────────────┼───────────┼───────────────────────────┤
-// │ Token session                 │ YA        │ SecureStore (terenkripsi) │
-// │ Hash password + salt          │ YA        │ SecureStore (terenkripsi) │
-// │ Nama & email akun             │ YA        │ SecureStore (terenkripsi) │
-// │ Password asli (plaintext)     │ YA        │ TIDAK PERNAH disimpan     │
-// └───────────────────────────────┴───────────┴───────────────────────────┘
+// Alur:  LOGIN -> API -> ACCESS TOKEN (JWT) -> SECURE STORAGE -> AUTHENTICATED
 //
-// Catatan: SecureStore memakai Keychain (iOS) / Keystore (Android), jadi data
-// terenkripsi di perangkat. SecureStore tidak tersedia di web, jalankan di Expo Go.
+//   1. Pengguna mengisi email + password
+//   2. Aplikasi mengirim POST /login ke API (credential divalidasi SERVER)
+//   3. Server membalas access_token (JWT) + data user
+//   4. Token disimpan di SecureStore (terenkripsi)  -> src/api/token.ts
+//   5. State authentication berubah (App: user != null)
+//
+// Password TIDAK PERNAH disimpan di perangkat; hanya token + data user.
+// Token dipakai otomatis pada request protected lewat src/api/client.ts.
+import { ApiError, apiFetch } from "./api/client";
+import { SessionUser, clearSession, getStoredUser, saveSession } from "./api/token";
 
-import * as Crypto from "expo-crypto";
-import * as SecureStore from "expo-secure-store";
-
-export type User = { nama: string; email: string };
+export type User = SessionUser;
 export type Hasil = { ok: true; user: User } | { ok: false; error: string };
 
-type Akun = { nama: string; email: string; salt: string; hash: string };
-
-// Key SecureStore hanya boleh berisi huruf, angka, ".", "-", "_"
-const KEY_SESSION = "hs_session";
-const PESAN_GAGAL_LOGIN = "Email atau password salah."; // sengaja tidak spesifik
-const PESAN_GAGAL_SIMPAN = "Terjadi kesalahan penyimpanan. Coba lagi.";
-
-const sha256 = (teks: string) =>
-  Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, teks);
-
-const acak = async (byte = 16) => {
-  const b = await Crypto.getRandomBytesAsync(byte);
-  return Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+type AuthResponse = {
+  access_token: string;
+  user: { id: number; name: string; email: string };
 };
 
-const normal = (email: string) => email.trim().toLowerCase();
-const keyAkun = async (email: string) =>
-  "hs_akun_" + (await sha256(normal(email)));
+const PESAN_GAGAL_LOGIN = "Email atau password salah."; // sengaja tidak spesifik
+const PESAN_GAGAL_SIMPAN = "Terjadi kesalahan penyimpanan. Coba lagi.";
+const PESAN_GAGAL_JARINGAN =
+  "Tidak dapat terhubung ke server. Periksa koneksi internet.";
 
 /* ---------- VALIDASI INPUT (mengembalikan '' jika valid) ---------- */
 
@@ -55,46 +43,80 @@ export const validasiPassword = (password: string) => {
   return "";
 };
 
+/* ---------- PESAN ERROR DARI API ---------- */
+
+const pesanAuthError = (e: unknown) => {
+  if (e instanceof ApiError) {
+    if (e.status === 401) return PESAN_GAGAL_LOGIN;
+    if (e.status === 409) return "Email sudah terdaftar. Silakan login.";
+    if (e.status === 400) return "Data yang dikirim tidak valid.";
+    if (e.message === "INSECURE")
+      return "Koneksi tidak aman. Aplikasi hanya boleh memakai HTTPS.";
+    if (e.status >= 500) return "Server bermasalah. Coba lagi nanti.";
+  }
+  if (e instanceof Error && e.name === "AbortError")
+    return "Koneksi terlalu lama. Periksa internet lalu coba lagi.";
+  return PESAN_GAGAL_JARINGAN;
+};
+
 /* ---------- SESSION ---------- */
 
-async function mulaiSesi(user: User): Promise<Hasil> {
-  const token = (await acak(16)) + (await acak(16));
-  await SecureStore.setItemAsync(
-    KEY_SESSION,
-    JSON.stringify({ token, email: user.email }),
-  );
+/** Token retrieval + secure token storage + authentication state. */
+async function mulaiSesi(res: AuthResponse): Promise<Hasil> {
+  const valid =
+    typeof res?.access_token === "string" &&
+    res.access_token !== "" &&
+    typeof res.user?.name === "string" &&
+    typeof res.user?.email === "string";
+  if (!valid) return { ok: false, error: PESAN_GAGAL_JARINGAN };
+
+  const user: User = { nama: res.user.name, email: res.user.email };
+  try {
+    await saveSession(res.access_token, user); // -> SecureStore
+  } catch {
+    return { ok: false, error: PESAN_GAGAL_SIMPAN };
+  }
   return { ok: true, user };
 }
 
-/** Dipanggil saat aplikasi dibuka: baca kembali session dari secure storage. */
+/**
+ * Dipanggil saat aplikasi dibuka: baca kembali token dari SecureStore lalu
+ * validasi ke server (GET /me). Token ditolak (401) -> session dibersihkan.
+ * Jika server tidak terjangkau (offline), session tetap dipakai; token akan
+ * divalidasi lagi pada request protected berikutnya.
+ */
 export async function getSession(): Promise<User | null> {
   try {
-    const mentah = await SecureStore.getItemAsync(KEY_SESSION);
-    if (!mentah) return null;
-    const { token, email } = JSON.parse(mentah) as {
-      token?: string;
-      email?: string;
-    };
-    if (!token || !email) return null;
-    const akunMentah = await SecureStore.getItemAsync(await keyAkun(email));
-    if (!akunMentah) return null;
-    const akun = JSON.parse(akunMentah) as Akun;
-    return { nama: akun.nama, email: akun.email };
+    const user = await getStoredUser();
+    if (!user) {
+      await clearSession(); // token tanpa data user = session rusak
+      return null;
+    }
+    try {
+      await apiFetch("/me", { timeoutMs: 5000 });
+    } catch (e) {
+      if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+        await clearSession();
+        return null;
+      }
+      // masalah jaringan / server: jangan logout paksa
+    }
+    return user;
   } catch {
     return null;
   }
 }
 
-/** Logout: hapus session dari secure storage. */
+/** Logout: hapus token + session dari SecureStore. */
 export async function logout(): Promise<void> {
   try {
-    await SecureStore.deleteItemAsync(KEY_SESSION);
+    await clearSession();
   } catch {
-    // abaikan; tidak ada data lain yang perlu dibersihkan
+    // abaikan; state aplikasi tetap dikembalikan ke unauthenticated
   }
 }
 
-/* ---------- REGISTER & LOGIN ---------- */
+/* ---------- REGISTER & LOGIN (lewat API) ---------- */
 
 export async function register(
   nama: string,
@@ -102,29 +124,27 @@ export async function register(
   password: string,
 ): Promise<Hasil> {
   try {
-    const key = await keyAkun(email);
-    if (await SecureStore.getItemAsync(key)) {
-      return { ok: false, error: "Email sudah terdaftar. Silakan login." };
-    }
-    const salt = await acak(16);
-    const hash = await sha256(salt + password); // password asli tidak disimpan
-    const akun: Akun = { nama: nama.trim(), email: normal(email), salt, hash };
-    await SecureStore.setItemAsync(key, JSON.stringify(akun));
-    return await mulaiSesi({ nama: akun.nama, email: akun.email });
-  } catch {
-    return { ok: false, error: PESAN_GAGAL_SIMPAN };
+    const res = await apiFetch<AuthResponse>("/register", {
+      method: "POST",
+      body: { name: nama.trim(), email: email.trim(), password },
+      auth: false,
+    });
+    return await mulaiSesi(res);
+  } catch (e) {
+    return { ok: false, error: pesanAuthError(e) };
   }
 }
 
 export async function login(email: string, password: string): Promise<Hasil> {
   try {
-    const mentah = await SecureStore.getItemAsync(await keyAkun(email));
-    if (!mentah) return { ok: false, error: PESAN_GAGAL_LOGIN };
-    const akun = JSON.parse(mentah) as Akun;
-    const hash = await sha256(akun.salt + password);
-    if (hash !== akun.hash) return { ok: false, error: PESAN_GAGAL_LOGIN };
-    return await mulaiSesi({ nama: akun.nama, email: akun.email });
-  } catch {
-    return { ok: false, error: PESAN_GAGAL_SIMPAN };
+    // Login request: kirim credential, server yang memvalidasi.
+    const res = await apiFetch<AuthResponse>("/login", {
+      method: "POST",
+      body: { email: email.trim(), password },
+      auth: false,
+    });
+    return await mulaiSesi(res);
+  } catch (e) {
+    return { ok: false, error: pesanAuthError(e) };
   }
 }

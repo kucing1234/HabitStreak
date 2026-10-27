@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Sprint 04: data user server lokal & env
+server/users.json
+.env

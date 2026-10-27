@@ -1,7 +1,9 @@
-// TASK 2 — Connect to REST API: request -> JSON -> parse -> mapping -> state
+// TASK 2 (Sprint 03) — Connect to REST API: request -> JSON -> parse -> mapping -> state
+// SPRINT 04 — endpoint /habits sekarang PROTECTED: request memakai Bearer token
+// (dipasang otomatis oleh apiFetch).
 import { Ionicons } from "@expo/vector-icons";
-import { API_URL } from "../config";
 import { C } from "../theme";
+import { apiFetch } from "./client";
 import { Habit, HabitDto, IconName } from "../models/habit";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -39,15 +41,9 @@ export const toHabit = (item: HabitDto): Habit => {
 };
 
 export async function fetchHabits(signal?: AbortSignal): Promise<Habit[]> {
-  // 1. REQUEST ke REST API
-  const response = await fetch(API_URL, {
-    headers: { Accept: "application/json" },
-    signal,
-  });
-  if (!response.ok) throw new Error(`HTTP_${response.status}`);
-
+  // 1. REQUEST ke protected endpoint (Authorization: Bearer <token>)
   // 2. PARSE JSON -> objek JavaScript
-  const data: unknown = await response.json();
+  const data: unknown = await apiFetch<unknown>("/habits", { signal });
   if (!Array.isArray(data)) throw new Error("FORMAT");
 
   // 3. MAPPING ke data model (hanya kebiasaan yang aktif)
