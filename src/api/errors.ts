@@ -74,9 +74,6 @@ export function errorDariStatus(status: number): InfoError {
 
 /** Error apa pun (HTTP, timeout, jaringan, format) -> pesan untuk pengguna. */
 export async function klasifikasiError(e: unknown): Promise<InfoError> {
-  // LOG SEMENTARA (hapus setelah masalah koneksi selesai)
-  console.log("API error:", e);
-
   if (e instanceof ApiError) {
     if (e.message === "INSECURE")
       return {
