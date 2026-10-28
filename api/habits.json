@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "name": "Membaca",
+    "description": "Baca buku minimal 15 menit setiap hari.",
+    "icon": "book",
+    "color": "#1d4ed8",
+    "streak": 12,
+    "status": "active"
+  },
+  {
+    "id": 2,
+    "name": "Olahraga",
+    "description": "Gerak badan 20 menit agar tubuh tetap bugar.",
+    "icon": "barbell",
+    "color": "#c2410c",
+    "streak": 7,
+    "status": "active"
+  },
+  {
+    "id": 3,
+    "name": "Minum Air",
+    "description": "Minum 8 gelas air putih dalam sehari.",
+    "icon": "water",
+    "color": "#0e7490",
+    "streak": 21,
+    "status": "active"
+  },
+  {
+    "id": 4,
+    "name": "Tidur Cepat",
+    "description": "Tidur sebelum jam 10 malam.",
+    "icon": "moon",
+    "color": "#6d28d9",
+    "streak": 4,
+    "status": "active"
+  },
+  {
+    "id": 5,
+    "name": "Jurnal Harian",
+    "description": "Kebiasaan lama yang dinonaktifkan.",
+    "icon": "create",
+    "color": "#be185d",
+    "streak": 0,
+    "status": "inactive"
+  }
+]
