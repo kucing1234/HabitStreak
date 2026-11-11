@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { User } from "../auth";
 import StateView from "../components/StateView";
 import { useHabits } from "../hooks/useHabits";
+import SensorScreen from "../sensor/SensorScreen";
 import { C, MIN_TOUCH, bayangan } from "../theme";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -30,6 +31,7 @@ const NAV: NavItem[] = [
     iconAktif: "checkmark-done",
   },
   { label: "Statistik", icon: "stats-chart-outline", iconAktif: "stats-chart" },
+  { label: "Sensor", icon: "pulse-outline", iconAktif: "pulse" }, // week 7
   { label: "Profil", icon: "person-outline", iconAktif: "person" },
 ];
 
@@ -121,15 +123,31 @@ export default function HomeScreen({ user, onLogout }: Props) {
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={refresh}
-            colors={[C.primer]}
-            tintColor={C.primer}
-          />
+          tab === "Sensor" ? undefined : (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={refresh}
+              colors={[C.primer]}
+              tintColor={C.primer}
+            />
+          )
         }
       >
-        {tab === "Profil" ? (
+        {tab === "Sensor" ? (
+          // WEEK 7: dipasang hanya saat tab aktif -> sensor berhenti saat pindah tab
+          <View
+            style={[
+              styles.content,
+              { width: lebarKonten, paddingHorizontal: pad },
+            ]}
+          >
+            <SensorScreen
+              lebar={kolom}
+              fs={fs}
+              onKembali={() => setTab("Beranda")}
+            />
+          </View>
+        ) : tab === "Profil" ? (
           <View
             style={[
               styles.content,
