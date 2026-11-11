@@ -1,4 +1,4 @@
-# Task 1 — Model the HabitStreak Data
+# Week 4 — Model the HabitStreak Data
 
 Tujuan: menentukan data apa yang diperlukan aplikasi HabitStreak.
 

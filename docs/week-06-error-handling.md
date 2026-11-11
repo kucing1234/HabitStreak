@@ -1,4 +1,8 @@
-# Sprint 05 — Error Handling & Offline HabitStreak
+# Week 6 (Sprint 05) — Error Handling & Offline HabitStreak
+
+> Kode week 6: `src/api/errors.ts`, `src/api/network.ts`, `src/api/client.ts`,
+> `src/components/StateView.tsx`, `src/hooks/useHabits.ts`, `server/`.
+> Pekan berikutnya: [week 7 — device sensor](week-07-device-sensor.md).
 
 Request API selalu melewati alur: **REQUEST → CHECK RESULT → DATA / FEEDBACK / RETRY**.
 
