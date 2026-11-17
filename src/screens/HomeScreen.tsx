@@ -17,6 +17,7 @@ import { User } from "../auth";
 import StateView from "../components/StateView";
 import { useHabits } from "../hooks/useHabits";
 import SensorScreen from "../sensor/SensorScreen";
+import TodoScreen from "../todos/TodoScreen";
 import { C, MIN_TOUCH, bayangan } from "../theme";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -32,6 +33,7 @@ const NAV: NavItem[] = [
   },
   { label: "Statistik", icon: "stats-chart-outline", iconAktif: "stats-chart" },
   { label: "Sensor", icon: "pulse-outline", iconAktif: "pulse" }, // week 7
+  { label: "Todo", icon: "list-outline", iconAktif: "list" }, // week 9
   { label: "Profil", icon: "person-outline", iconAktif: "person" },
 ];
 
@@ -122,8 +124,9 @@ export default function HomeScreen({ user, onLogout }: Props) {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
-          tab === "Sensor" ? undefined : (
+          tab === "Sensor" || tab === "Todo" ? undefined : (
             <RefreshControl
               refreshing={refreshing}
               onRefresh={refresh}
@@ -146,6 +149,16 @@ export default function HomeScreen({ user, onLogout }: Props) {
               fs={fs}
               onKembali={() => setTab("Beranda")}
             />
+          </View>
+        ) : tab === "Todo" ? (
+          // WEEK 9: Todo List Async (GET / POST / PATCH). Punya tombol Refresh sendiri.
+          <View
+            style={[
+              styles.content,
+              { width: lebarKonten, paddingHorizontal: pad },
+            ]}
+          >
+            <TodoScreen fs={fs} />
           </View>
         ) : tab === "Profil" ? (
           <View
@@ -416,6 +429,9 @@ export default function HomeScreen({ user, onLogout }: Props) {
               </View>
               <Text
                 maxFontSizeMultiplier={1.3}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
                 style={[styles.navLabel, aktif && styles.navLabelAktif]}
               >
                 {n.label}
